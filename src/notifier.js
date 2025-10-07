@@ -46,7 +46,6 @@ function createNotifier(bot, config) {
     }
 
     lines.push(`Fuente: ${result.provider}`);
-    lines.push(`Link: ${result.deepLink || 'No disponible'}`);
     lines.push(`(#watch ${watch.id} • ${nowLabel})`);
 
     return lines.join('\n');

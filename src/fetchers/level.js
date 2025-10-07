@@ -45,10 +45,6 @@ function toDdMmYyyy(date) {
   return `${day}/${month}/${year}`;
 }
 
-function toIsoDate(date) {
-  return date.toISOString().slice(0, 10);
-}
-
 function toCompactDate(date) {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, '0');
@@ -111,21 +107,6 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function buildDeepLink({ origin, destination, tripType, departureDate, returnDate }) {
-  const url = new URL('/en/booking/', BASE_URL);
-  url.searchParams.set('tripType', tripType);
-  url.searchParams.set('origin', origin);
-  url.searchParams.set('destination', destination);
-  if (departureDate) {
-    url.searchParams.set('departureDate', departureDate);
-  }
-  if (tripType === 'RT' && returnDate) {
-    url.searchParams.set('returnDate', returnDate);
-  }
-  url.searchParams.set('adults', '1');
-  return url.toString();
-}
-
 async function fetchMonthPrices(params) {
   const normalizedParams = { ...params };
   if (normalizedParams.month !== undefined && normalizedParams.month !== null) {
@@ -147,7 +128,19 @@ async function fetchMonthPrices(params) {
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
     try {
       const response = await client.get(CALENDAR_ENDPOINT, { params: sanitizedParams });
-      return Array.isArray(response.data?.dayPrices) ? response.data.dayPrices : [];
+      const envelope = response.data;
+      const payload = envelope && envelope.data ? envelope.data : envelope;
+      const dayPrices = Array.isArray(payload?.dayPrices) ? payload.dayPrices : [];
+      // eslint-disable-next-line no-console
+      console.log(
+        '[fetcher:level] response',
+        JSON.stringify({
+          request: sanitizedParams,
+          entries: dayPrices.length,
+          sample: dayPrices.slice(0, 5)
+        })
+      );
+      return dayPrices;
     } catch (error) {
       lastError = error;
       if (attempt === MAX_ATTEMPTS - 1 || !shouldRetry(error)) {
@@ -215,20 +208,16 @@ async function getBestPriceForRange(watchParams = {}) {
     return null;
   }
 
-  const deepLink = buildDeepLink({
-    origin: from,
-    destination: to,
-    tripType,
-    departureDate: best.isoDate,
-    returnDate: tripType === 'RT' && dateTo ? toIsoDate(parseDate(dateTo)) : undefined
-  });
+  const travelLabel = tripType === 'RT' && dateTo
+    ? `Salida ${toDdMmYyyy(best.date)} / Regreso ${dateTo}`
+    : `Salida ${toDdMmYyyy(best.date)}`;
 
   return {
     priceUsd: best.price,
     provider: 'Level',
-    deepLink,
+    deepLink: '',
     foundAt: new Date().toISOString(),
-    travelDate: toDdMmYyyy(best.date)
+    travelDate: travelLabel
   };
 }
 
@@ -254,7 +243,7 @@ async function getBestPriceForMonth(watchParams = {}) {
     return null;
   }
 
-  const best = monthPrices
+  const bestOutbound = monthPrices
     .map((entry) => ({
       price: Number(entry.price),
       isoDate: entry.date,
@@ -263,23 +252,62 @@ async function getBestPriceForMonth(watchParams = {}) {
     .filter((entry) => Number.isFinite(entry.price))
     .sort((a, b) => a.price - b.price)[0];
 
-  if (!best) {
+  if (!bestOutbound) {
     return null;
   }
 
-  const deepLink = buildDeepLink({
-    origin: from,
-    destination: to,
-    tripType,
-    departureDate: best.isoDate
-  });
+  let totalPrice = bestOutbound.price;
+  let travelLabel = `Salida ${toDdMmYyyy(bestOutbound.date)}`;
+
+  if (tripType === 'RT') {
+    try {
+      const inboundPrices = await fetchMonthPrices({
+        triptype: 'OW',
+        origin: to,
+        destination: from,
+        month,
+        year,
+        version: 1,
+        currencyCode: 'USD'
+      });
+
+      if (Array.isArray(inboundPrices) && inboundPrices.length > 0) {
+        const outboundDate = bestOutbound.date;
+        const inboundCandidates = inboundPrices
+          .map((entry) => ({
+            price: Number(entry.price),
+            isoDate: entry.date,
+            date: new Date(entry.date)
+          }))
+          .filter((entry) => Number.isFinite(entry.price));
+
+        const minDiffMs = 10 * 24 * 60 * 60 * 1000;
+        const eligibleInbound = inboundCandidates
+          .filter((entry) => entry.date >= outboundDate)
+          .filter((entry) => entry.date.getTime() - outboundDate.getTime() >= minDiffMs)
+          .sort((a, b) => a.price - b.price);
+
+        const bestInbound = eligibleInbound[0];
+
+        if (bestInbound) {
+          totalPrice += bestInbound.price;
+          travelLabel = `Salida ${toDdMmYyyy(bestOutbound.date)} / Regreso ${toDdMmYyyy(bestInbound.date)}`;
+        } else {
+          travelLabel = `Salida ${toDdMmYyyy(bestOutbound.date)} (sin regreso ≥10 días disponible)`;
+        }
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('[fetcher:level] No se pudo obtener el precio de regreso:', error.message);
+    }
+  }
 
   return {
-    priceUsd: best.price,
+    priceUsd: totalPrice,
     provider: 'Level',
-    deepLink,
+    deepLink: '',
     foundAt: new Date().toISOString(),
-    travelDate: toDdMmYyyy(best.date)
+    travelDate: travelLabel
   };
 }
 

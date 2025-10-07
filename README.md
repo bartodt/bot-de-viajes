@@ -44,7 +44,7 @@ Solo el `OWNER_CHAT_ID` recibe respuestas; otros chats verán “No autorizado�
 - Los watches se guardan en `data/watches.json` de forma atómica.
 - Cada `CHECK_INTERVAL_MIN` minutos (cron via node-cron, recomendado 30) se consulta `https://www.flylevel.com/nwe/flights/api/calendar/` pasando `triptype`, `origin`, `destination` (con el mes en formato `MM`) y los parámetros necesarios según el modo elegido:
   - Fecha puntual: se envía `outboundDate` y, si corresponde, `date_to`, consultando los meses que cubren el rango (usa `FLEX_DAYS` para extender ± días si configuraste un valor > 0).
-  - Mes completo: se consulta directamente el `month/year` indicado para detectar la mejor fecha dentro del mes.
+- Mes completo: se consulta directamente el `month/year` indicado para detectar la mejor fecha dentro del mes. Si el seguimiento es ida y vuelta, también se consulta el mes inverso (destino → origen), se suma el precio de ambos tramos y sólo se considera regreso con al menos 10 días de diferencia.
 - Si el mejor precio baja frente al último visto o queda por debajo de `threshold_usd`, y pasó el período de silencio (`QUIET_MIN` minutos), se envía una alerta:
   ```
   ✈️ Oferta detectada
@@ -52,8 +52,8 @@ Solo el `OWNER_CHAT_ID` recibe respuestas; otros chats verán “No autorizado�
   Precio: USD 688
   Anterior: USD 742 (↓54)
   Umbral: USD 700
+  Mejor fecha detectada: Salida 12/10/2025 / Regreso 21/10/2025
   Fuente: Level
-  Link: https://...
   (#watch 3 • 10:42)
   ```
 - Maneja timeouts (`HTTP_TIMEOUT_MS`) y reintentos simples frente a errores de red/5xx.

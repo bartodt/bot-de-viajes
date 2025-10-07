@@ -18,6 +18,9 @@ function createScheduler({ store, notifier, fetcher = levelFetcher, appConfig = 
     }
 
     const summary = { processed: 0, alerts: 0, errors: [] };
+    const startedAt = new Date();
+    // eslint-disable-next-line no-console
+    console.log(`[scheduler] Run started at ${startedAt.toISOString()} | watches=${watches.length}`);
 
     for (const watch of watches) {
       summary.processed += 1;
@@ -35,6 +38,10 @@ function createScheduler({ store, notifier, fetcher = levelFetcher, appConfig = 
         };
 
         if (result) {
+          // eslint-disable-next-line no-console
+          console.log(
+            `[scheduler] Watch #${watch.id} ${watch.from}->${watch.to} price=${result.priceUsd} travelDate=${result.travelDate || 'N/A'}`
+          );
           const notification = await notifier.maybeNotify(
             watch,
             result,
@@ -45,6 +52,11 @@ function createScheduler({ store, notifier, fetcher = levelFetcher, appConfig = 
             updatePayload.lastAlertAt = now.toISOString();
             summary.alerts += 1;
           }
+        } else {
+          // eslint-disable-next-line no-console
+          console.log(
+            `[scheduler] Watch #${watch.id} ${watch.from}->${watch.to} sin resultados en esta ejecución`
+          );
         }
 
         const updated = await store.update(watch.id, updatePayload);
@@ -57,6 +69,12 @@ function createScheduler({ store, notifier, fetcher = levelFetcher, appConfig = 
         console.error(`[scheduler] Error processing watch ${watch.id}:`, error.message);
       }
     }
+
+    const finishedAt = new Date();
+    // eslint-disable-next-line no-console
+    console.log(
+      `[scheduler] Run finished at ${finishedAt.toISOString()} | processed=${summary.processed} alerts=${summary.alerts} errors=${summary.errors.length}`
+    );
 
     return summary;
   }

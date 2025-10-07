@@ -10,10 +10,10 @@
     "year": 2026,
     "trip_type": "RT",
     "threshold_usd": 800,
-    "lastSeenPrice": null,
-    "lastSeenAt": "2025-10-07T15:50:00.620Z",
-    "lastAlertAt": null,
-    "lastSeenTravelDate": null
+    "lastSeenPrice": 1878,
+    "lastSeenAt": "2025-10-07T20:38:33.920Z",
+    "lastAlertAt": "2025-10-07T17:42:59.672Z",
+    "lastSeenTravelDate": "Salida 10/06/2026 / Regreso 21/06/2026"
   },
   {
     "id": 2,
@@ -26,10 +26,10 @@
     "year": 2026,
     "trip_type": "RT",
     "threshold_usd": 800,
-    "lastSeenPrice": null,
-    "lastSeenAt": "2025-10-07T15:50:00.940Z",
-    "lastAlertAt": null,
-    "lastSeenTravelDate": null
+    "lastSeenPrice": 1878,
+    "lastSeenAt": "2025-10-07T20:38:34.524Z",
+    "lastAlertAt": "2025-10-07T20:30:03.488Z",
+    "lastSeenTravelDate": "Salida 10/06/2026 / Regreso 21/06/2026"
   },
   {
     "id": 3,
@@ -42,10 +42,10 @@
     "year": 2026,
     "trip_type": "RT",
     "threshold_usd": 800,
-    "lastSeenPrice": null,
-    "lastSeenAt": "2025-10-07T15:50:01.297Z",
-    "lastAlertAt": null,
-    "lastSeenTravelDate": null
+    "lastSeenPrice": 1256,
+    "lastSeenAt": "2025-10-07T20:38:35.150Z",
+    "lastAlertAt": "2025-10-07T17:43:01.475Z",
+    "lastSeenTravelDate": "Salida 27/07/2026 / Regreso 19/08/2026"
   },
   {
     "id": 4,
@@ -58,10 +58,10 @@
     "year": 2026,
     "trip_type": "RT",
     "threshold_usd": 800,
-    "lastSeenPrice": null,
-    "lastSeenAt": "2025-10-07T15:50:01.660Z",
-    "lastAlertAt": null,
-    "lastSeenTravelDate": null
+    "lastSeenPrice": 1653,
+    "lastSeenAt": "2025-10-07T20:38:35.752Z",
+    "lastAlertAt": "2025-10-07T19:00:06.548Z",
+    "lastSeenTravelDate": "Salida 17/09/2026 / Regreso 27/09/2026"
   },
   {
     "id": 5,
@@ -74,10 +74,10 @@
     "year": 2026,
     "trip_type": "RT",
     "threshold_usd": 800,
-    "lastSeenPrice": null,
-    "lastSeenAt": "2025-10-07T15:50:01.974Z",
-    "lastAlertAt": null,
-    "lastSeenTravelDate": null
+    "lastSeenPrice": 1653,
+    "lastSeenAt": "2025-10-07T20:38:36.421Z",
+    "lastAlertAt": "2025-10-07T19:00:08.189Z",
+    "lastSeenTravelDate": "Salida 17/09/2026 / Regreso 27/09/2026"
   },
   {
     "id": 6,
@@ -90,10 +90,10 @@
     "year": 2026,
     "trip_type": "RT",
     "threshold_usd": 800,
-    "lastSeenPrice": null,
-    "lastSeenAt": "2025-10-07T15:50:02.315Z",
+    "lastSeenPrice": 2269,
+    "lastSeenAt": "2025-10-07T20:38:37.006Z",
     "lastAlertAt": null,
-    "lastSeenTravelDate": null
+    "lastSeenTravelDate": "Salida 10/06/2026 / Regreso 21/06/2026"
   },
   {
     "id": 7,
@@ -106,10 +106,10 @@
     "year": 2026,
     "trip_type": "RT",
     "threshold_usd": 800,
-    "lastSeenPrice": null,
-    "lastSeenAt": "2025-10-07T15:50:02.666Z",
-    "lastAlertAt": null,
-    "lastSeenTravelDate": null
+    "lastSeenPrice": 2269,
+    "lastSeenAt": "2025-10-07T20:38:37.632Z",
+    "lastAlertAt": "2025-10-07T20:30:09.050Z",
+    "lastSeenTravelDate": "Salida 10/06/2026 / Regreso 21/06/2026"
   },
   {
     "id": 8,
@@ -122,10 +122,10 @@
     "year": 2026,
     "trip_type": "RT",
     "threshold_usd": 800,
-    "lastSeenPrice": null,
-    "lastSeenAt": "2025-10-07T15:50:02.993Z",
-    "lastAlertAt": null,
-    "lastSeenTravelDate": null
+    "lastSeenPrice": 1744,
+    "lastSeenAt": "2025-10-07T20:38:38.749Z",
+    "lastAlertAt": "2025-10-07T17:43:04.724Z",
+    "lastSeenTravelDate": "Salida 27/07/2026 / Regreso 15/08/2026"
   },
   {
     "id": 9,
@@ -138,10 +138,10 @@
     "year": 2026,
     "trip_type": "RT",
     "threshold_usd": 800,
-    "lastSeenPrice": null,
-    "lastSeenAt": "2025-10-07T15:50:03.328Z",
-    "lastAlertAt": null,
-    "lastSeenTravelDate": null
+    "lastSeenPrice": 2194,
+    "lastSeenAt": "2025-10-07T20:38:40.115Z",
+    "lastAlertAt": "2025-10-07T17:43:08.584Z",
+    "lastSeenTravelDate": "Salida 17/09/2026 / Regreso 27/09/2026"
   },
   {
     "id": 10,
@@ -154,9 +154,25 @@
     "year": 2026,
     "trip_type": "RT",
     "threshold_usd": 800,
-    "lastSeenPrice": null,
-    "lastSeenAt": "2025-10-07T15:50:03.684Z",
-    "lastAlertAt": null,
-    "lastSeenTravelDate": null
+    "lastSeenPrice": 2194,
+    "lastSeenAt": "2025-10-07T20:38:41.312Z",
+    "lastAlertAt": "2025-10-07T17:43:09.269Z",
+    "lastSeenTravelDate": "Salida 17/09/2026 / Regreso 27/09/2026"
+  },
+  {
+    "id": 11,
+    "from": "EZE",
+    "to": "BCN",
+    "mode": "month",
+    "date_from": null,
+    "date_to": null,
+    "month": 5,
+    "year": 2026,
+    "trip_type": "RT",
+    "threshold_usd": 800,
+    "lastSeenPrice": 1878,
+    "lastSeenAt": "2025-10-07T20:38:41.886Z",
+    "lastAlertAt": "2025-10-07T17:43:09.938Z",
+    "lastSeenTravelDate": "Salida 10/06/2026 / Regreso 21/06/2026"
   }
 ]
