@@ -1,8 +1,8 @@
 const cron = require('node-cron');
 const config = require('./config');
-const tequilaFetcher = require('./fetchers/tequila');
+const levelFetcher = require('./fetchers/level');
 
-function createScheduler({ store, notifier, fetcher = tequilaFetcher, appConfig = config }) {
+function createScheduler({ store, notifier, fetcher = levelFetcher, appConfig = config }) {
   if (!store || !notifier) {
     throw new Error('Scheduler requires store and notifier');
   }
@@ -23,6 +23,8 @@ function createScheduler({ store, notifier, fetcher = tequilaFetcher, appConfig 
       summary.processed += 1;
 
       try {
+        const previousPrice = typeof watch.lastSeenPrice === 'number' ? watch.lastSeenPrice : null;
+
         const result = await fetcher.getBestPrice({
           from: watch.from,
           to: watch.to,
@@ -37,7 +39,12 @@ function createScheduler({ store, notifier, fetcher = tequilaFetcher, appConfig 
         };
 
         if (result) {
-          const notification = await notifier.maybeNotify(watch, result, now);
+          const notification = await notifier.maybeNotify(
+            watch,
+            result,
+            now,
+            { previousPrice }
+          );
           if (notification.notified) {
             updatePayload.lastAlertAt = now.toISOString();
             summary.alerts += 1;

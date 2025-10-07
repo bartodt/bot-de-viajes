@@ -1,7 +1,7 @@
 {
   "name": "bot-de-viajes",
   "version": "1.0.0",
-  "description": "Bot de Telegram para monitorear vuelos usando la API Kiwi/Tequila.",
+  "description": "Bot de Telegram para monitorear vuelos usando el calendario público de Level.",
   "main": "src/index.js",
   "type": "commonjs",
   "scripts": {

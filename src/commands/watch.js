@@ -3,12 +3,12 @@ const DATE_REGEX = /^\d{2}\/\d{2}\/\d{4}$/;
 
 function parseArgs(text) {
   if (!text) {
-    throw new Error('Formato inválido. Usa /watch FROM;TO;DD/MM/YYYY;DD/MM/YYYY opcional;threshold');
+    throw new Error('Formato inválido. Usá /watch FROM;TO;DD/MM/YYYY;DD/MM/YYYY opcional;threshold o solo /watch para modo guiado.');
   }
   const parts = text.split(';').map((segment) => segment.trim());
 
   if (parts.length < 4 || parts.length > 5) {
-    throw new Error('Formato inválido. Usa /watch FROM;TO;DD/MM/YYYY;DD/MM/YYYY opcional;threshold');
+    throw new Error('Formato inválido. Usá /watch FROM;TO;DD/MM/YYYY;DD/MM/YYYY opcional;threshold o solo /watch para modo guiado.');
   }
 
   let from;
@@ -58,10 +58,26 @@ function parseArgs(text) {
   };
 }
 
-function createWatchCommand({ bot, store }) {
+function createWatchCommand({ bot, store, flow }) {
   return async (msg, match) => {
+    const chatId = msg.chat.id;
+    const rawArgs = match && match[1] ? match[1].trim() : '';
+
+    if (!rawArgs) {
+      if (flow && flow.isActive(chatId)) {
+        await bot.sendMessage(chatId, 'Ya estamos creando un seguimiento. Respondé las preguntas anteriores o enviá /cancel.');
+        return;
+      }
+      if (flow) {
+        await flow.start(chatId);
+        return;
+      }
+      await bot.sendMessage(chatId, 'Formato: /watch FROM;TO;DD/MM/YYYY;DD/MM/YYYY opcional;threshold');
+      return;
+    }
+
     try {
-      const args = parseArgs(match && match[1] ? match[1] : '');
+      const args = parseArgs(rawArgs);
       const watch = await store.add(args);
       const dateSegment = watch.date_to
         ? `${watch.date_from} → ${watch.date_to}`

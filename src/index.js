@@ -3,16 +3,18 @@ const WatchStore = require('./store');
 const { createBot, registerHandlers } = require('./telegram');
 const { createNotifier } = require('./notifier');
 const { createScheduler } = require('./scheduler');
+const { createWatchFlow } = require('./flows/watchFlow');
 
 async function main() {
   const store = new WatchStore(config.DATA_FILE);
   await store.init();
 
   const bot = createBot(config);
+  const watchFlow = createWatchFlow({ bot, store });
   const notifier = createNotifier(bot, config);
   const scheduler = createScheduler({ store, notifier, appConfig: config });
 
-  registerHandlers({ bot, config, store, scheduler });
+  registerHandlers({ bot, config, store, scheduler, watchFlow });
 
   bot.on('polling_error', (error) => {
     // eslint-disable-next-line no-console
