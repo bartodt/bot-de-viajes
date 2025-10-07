@@ -50,16 +50,24 @@ class WatchStore {
   async add(watchData) {
     const watches = await this.getAll();
     const nextId = watches.reduce((maxId, watch) => Math.max(maxId, watch.id || 0), 0) + 1;
+    const mode = watchData.mode || 'range';
+    const tripType = watchData.trip_type
+      || (mode === 'range' ? (watchData.date_to ? 'RT' : 'OW') : 'RT');
     const newWatch = {
       id: nextId,
       from: watchData.from,
       to: watchData.to,
-      date_from: watchData.date_from,
-      date_to: watchData.date_to || null,
+      mode,
+      date_from: mode === 'range' ? watchData.date_from : null,
+      date_to: mode === 'range' ? watchData.date_to || null : null,
+      month: mode === 'month' ? watchData.month : null,
+      year: mode === 'month' ? watchData.year : null,
+      trip_type: tripType,
       threshold_usd: watchData.threshold_usd,
       lastSeenPrice: null,
       lastSeenAt: null,
-      lastAlertAt: null
+      lastAlertAt: null,
+      lastSeenTravelDate: null
     };
     await this.#writeAll([...watches, newWatch]);
     return newWatch;

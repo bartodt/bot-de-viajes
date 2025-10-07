@@ -27,9 +27,9 @@ npm start
 ```
 El bot inicia en modo polling y crea `data/watches.json` si no existe.
 
--## Comandos disponibles
+## Comandos disponibles
 - `/start` – ayuda rápida.
-- `/watch` – inicia un asistente paso a paso (pedirá origen, destino, fechas y umbral).
+- `/watch` – inicia un asistente paso a paso (podés elegir fecha puntual o un mes completo).
 - `/watch <from>;<to>;<date_from>;<date_to opcional>;<threshold_usd>`  
   Ejemplo: `/watch EZE;LIS;10/10/2025;20/10/2025;800`
 - `/list` – lista los watches con el último precio observado.
@@ -42,7 +42,9 @@ Solo el `OWNER_CHAT_ID` recibe respuestas; otros chats verán “No autorizado�
 
 ## Cómo funciona
 - Los watches se guardan en `data/watches.json` de forma atómica.
-- Cada `CHECK_INTERVAL_MIN` minutos (cron via node-cron, recomendado 30) se consulta `https://www.flylevel.com/nwe/api/pricing/calendar/` pasando `triptype`, `origin`, `destination`, `outboundDate` (YYYYMMDD) y la combinación `month/year` correspondiente para reunir los precios diarios dentro del rango solicitado.
+- Cada `CHECK_INTERVAL_MIN` minutos (cron via node-cron, recomendado 30) se consulta `https://www.flylevel.com/nwe/flights/api/calendar/` pasando `triptype`, `origin`, `destination` (con el mes en formato `MM`) y los parámetros necesarios según el modo elegido:
+  - Fecha puntual: se envía `outboundDate` y, si corresponde, `date_to`, consultando los meses que cubren el rango (usa `FLEX_DAYS` para extender ± días si configuraste un valor > 0).
+  - Mes completo: se consulta directamente el `month/year` indicado para detectar la mejor fecha dentro del mes.
 - Si el mejor precio baja frente al último visto o queda por debajo de `threshold_usd`, y pasó el período de silencio (`QUIET_MIN` minutos), se envía una alerta:
   ```
   ✈️ Oferta detectada
@@ -68,7 +70,7 @@ El servicio monta `./data` en el contenedor para persistir los watches. Asegurat
 - `OWNER_CHAT_ID` *(obligatoria)* – chat autorizado.
 - `CHECK_INTERVAL_MIN` – intervalo de cron en minutos (default 30).
 - `QUIET_MIN` – ventana anti-spam en minutos (default 60).
-- `FLEX_DAYS` – rango ± en días cuando no se especifica `date_to` (default 0).
+- `FLEX_DAYS` – rango ± en días para el modo de fecha puntual cuando no se indica `date_to` (default 0).
 - `HTTP_TIMEOUT_MS` – timeout HTTP para las peticiones a Level (default 8000).
 - `TZ` – zona horaria usada en cron y mensajes (default `America/Argentina/Buenos_Aires`).
 

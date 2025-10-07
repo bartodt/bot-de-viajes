@@ -1,3 +1,5 @@
+const { formatWatchTarget, formatTripType } = require('./utils/watchLabels');
+
 function formatUsd(value) {
   return Number.isFinite(value) ? `USD ${value}` : 'N/D';
 }
@@ -13,11 +15,13 @@ function createNotifier(bot, config) {
 
   function buildMessage(watch, result, timestamp, context = {}) {
     const nowLabel = timeFormatter.format(timestamp);
-    const dateSegment = watch.date_to ? `${watch.date_from} → ${watch.date_to}` : watch.date_from;
+    const targetLabel = formatWatchTarget(watch);
+    const tripTypeLabel = formatTripType(watch);
     const { previousPrice, triggeredByDrop, triggeredByThreshold } = context;
     const lines = [
       '✈️ Oferta detectada',
-      `${watch.from} → ${watch.to} | ${dateSegment}`,
+      `${watch.from} → ${watch.to} | ${targetLabel}`,
+      `Tipo: ${tripTypeLabel}`,
       `Precio: ${formatUsd(result.priceUsd)}`
     ];
 
@@ -31,6 +35,10 @@ function createNotifier(bot, config) {
     if (Number.isFinite(watch.threshold_usd)) {
       const label = triggeredByThreshold ? 'Umbral alcanzado' : 'Umbral';
       lines.push(`${label}: USD ${watch.threshold_usd}`);
+    }
+
+    if (result.travelDate) {
+      lines.push(`Mejor fecha detectada: ${result.travelDate}`);
     }
 
     if (triggeredByDrop && !triggeredByThreshold) {

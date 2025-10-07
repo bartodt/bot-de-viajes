@@ -25,17 +25,13 @@ function createScheduler({ store, notifier, fetcher = levelFetcher, appConfig = 
       try {
         const previousPrice = typeof watch.lastSeenPrice === 'number' ? watch.lastSeenPrice : null;
 
-        const result = await fetcher.getBestPrice({
-          from: watch.from,
-          to: watch.to,
-          date_from: watch.date_from,
-          date_to: watch.date_to
-        });
+        const result = await fetcher.getBestPrice(watch);
 
         const now = new Date();
         const updatePayload = {
           lastSeenAt: now.toISOString(),
-          lastSeenPrice: result && typeof result.priceUsd === 'number' ? result.priceUsd : null
+          lastSeenPrice: result && typeof result.priceUsd === 'number' ? result.priceUsd : null,
+          lastSeenTravelDate: result && result.travelDate ? result.travelDate : null
         };
 
         if (result) {

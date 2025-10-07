@@ -1,3 +1,5 @@
+const { formatWatchTarget, formatTripType } = require('../utils/watchLabels');
+
 const IATA_REGEX = /^[A-Z]{3}$/;
 const DATE_REGEX = /^\d{2}\/\d{2}\/\d{4}$/;
 
@@ -19,6 +21,73 @@ function parseThreshold(value = '') {
     return null;
   }
   return Number(number.toFixed(2));
+}
+
+function isAffirmative(input = '') {
+  return /^(s[ií]|si|sí|yes|y|true)$/i.test(input.trim());
+}
+
+function isNegative(input = '') {
+  return /^(no|n|false)$/i.test(input.trim());
+}
+
+const MONTH_ALIASES = {
+  enero: 1,
+  feb: 2,
+  febrero: 2,
+  mar: 3,
+  marzo: 3,
+  abr: 4,
+  abril: 4,
+  may: 5,
+  mayo: 5,
+  jun: 6,
+  junio: 6,
+  jul: 7,
+  julio: 7,
+  ago: 8,
+  agosto: 8,
+  sep: 9,
+  sept: 9,
+  septiembre: 9,
+  setiembre: 9,
+  oct: 10,
+  octubre: 10,
+  nov: 11,
+  noviembre: 11,
+  dic: 12,
+  diciembre: 12
+};
+
+function parseMonthInput(raw = '') {
+  const cleaned = raw.trim().toLowerCase();
+  if (!cleaned) {
+    return null;
+  }
+
+  const directMatch = cleaned.match(/^(\d{1,2})[\/\-](\d{4})$/);
+  if (directMatch) {
+    const month = Number.parseInt(directMatch[1], 10);
+    const year = Number.parseInt(directMatch[2], 10);
+    if (month >= 1 && month <= 12 && year >= 2000) {
+      return { month, year };
+    }
+    return null;
+  }
+
+  const nameMatch = cleaned.match(/^([a-záéíóúñ]+)\s+(\d{4})$/i);
+  if (!nameMatch) {
+    return null;
+  }
+
+  const monthKey = nameMatch[1];
+  const month = MONTH_ALIASES[monthKey];
+  const year = Number.parseInt(nameMatch[2], 10);
+  if (!month || month < 1 || month > 12 || year < 2000) {
+    return null;
+  }
+
+  return { month, year };
 }
 
 function createWatchFlow({ bot, store }) {
@@ -71,8 +140,49 @@ function createWatchFlow({ bot, store }) {
           return true;
         }
         data.to = normalizeIata(trimmed);
+        session.step = 'mode';
+        await bot.sendMessage(
+          chatId,
+          '¿Querés vigilar un mes completo? Respondé "sí" para mes completo o "no" para una fecha puntual.'
+        );
+        return true;
+      }
+      case 'mode': {
+        if (!isAffirmative(trimmed) && !isNegative(trimmed)) {
+          await bot.sendMessage(chatId, 'Respondé "sí" o "no", por favor.');
+          return true;
+        }
+        if (isAffirmative(trimmed)) {
+          data.mode = 'month';
+          session.step = 'month';
+          await bot.sendMessage(chatId, 'Indicá el mes y año (MM/AAAA o "marzo 2026").');
+          return true;
+        }
+        data.mode = 'range';
         session.step = 'date_from';
         await bot.sendMessage(chatId, '¿Cuál es la fecha de salida? (DD/MM/AAAA)');
+        return true;
+      }
+      case 'month': {
+        const monthInfo = parseMonthInput(trimmed);
+        if (!monthInfo) {
+          await bot.sendMessage(chatId, 'Formato inválido. Usá MM/AAAA o escribí el mes seguido del año (ej: "marzo 2026").');
+          return true;
+        }
+        data.month = monthInfo.month;
+        data.year = monthInfo.year;
+        session.step = 'trip_type';
+        await bot.sendMessage(chatId, '¿Buscás ida y vuelta? Respondé "sí" o "no".');
+        return true;
+      }
+      case 'trip_type': {
+        if (!isAffirmative(trimmed) && !isNegative(trimmed)) {
+          await bot.sendMessage(chatId, 'Respondé "sí" o "no", por favor.');
+          return true;
+        }
+        data.trip_type = isAffirmative(trimmed) ? 'RT' : 'OW';
+        session.step = 'threshold';
+        await bot.sendMessage(chatId, '¿Cuál es el precio máximo en USD que querés vigilar?');
         return true;
       }
       case 'date_from': {
@@ -95,6 +205,7 @@ function createWatchFlow({ bot, store }) {
           }
           data.date_to = trimmed;
         }
+        data.trip_type = data.date_to ? 'RT' : 'OW';
         session.step = 'threshold';
         await bot.sendMessage(chatId, '¿Cuál es el precio máximo en USD que querés vigilar?');
         return true;
@@ -120,15 +231,21 @@ function createWatchFlow({ bot, store }) {
     const watch = await store.add({
       from: payload.from,
       to: payload.to,
-      date_from: payload.date_from,
-      date_to: payload.date_to,
+      mode: payload.mode === 'month' ? 'month' : 'range',
+      date_from: payload.mode === 'month' ? null : payload.date_from,
+      date_to: payload.mode === 'month' ? null : payload.date_to,
+      month: payload.mode === 'month' ? payload.month : null,
+      year: payload.mode === 'month' ? payload.year : null,
+      trip_type: payload.trip_type,
       threshold_usd: payload.threshold_usd
     });
 
-    const dateSegment = watch.date_to ? `${watch.date_from} → ${watch.date_to}` : watch.date_from;
+    const dateSegment = formatWatchTarget(watch);
+    const tripTypeLabel = formatTripType(watch);
     const message = [
       `Watch #${watch.id} creado ✅`,
       `${watch.from} → ${watch.to} | ${dateSegment}`,
+      `Tipo: ${tripTypeLabel}`,
       `Umbral: USD ${watch.threshold_usd}`,
       'Usá /check para forzar una búsqueda cuando quieras.'
     ].join('\n');

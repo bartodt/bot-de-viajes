@@ -1,3 +1,5 @@
+const { formatWatchTarget, formatTripType } = require('../utils/watchLabels');
+
 function createListCommand({ bot, store, config }) {
   const dateTimeFormatter = new Intl.DateTimeFormat('es-AR', {
     timeZone: config.TZ,
@@ -13,14 +15,29 @@ function createListCommand({ bot, store, config }) {
     }
 
     const lines = watches.map((watch) => {
-      const dateSegment = watch.date_to ? `${watch.date_from} → ${watch.date_to}` : watch.date_from;
+      const target = formatWatchTarget(watch);
+      const tripTypeLabel = formatTripType(watch);
 
-      const lastSeen = watch.lastSeenAt
-        ? `${watch.lastSeenPrice !== null ? `USD ${watch.lastSeenPrice}` : 'Sin precio'} @ ${dateTimeFormatter.format(new Date(watch.lastSeenAt))}`
-        : 'Sin chequeos todavía';
+      let lastSeen;
+      if (watch.lastSeenAt) {
+        const parts = [];
+        if (watch.lastSeenPrice !== null) {
+          parts.push(`USD ${watch.lastSeenPrice}`);
+        } else {
+          parts.push('Sin precio');
+        }
+        if (watch.lastSeenTravelDate) {
+          parts.push(`Fecha ${watch.lastSeenTravelDate}`);
+        }
+        parts.push(`@ ${dateTimeFormatter.format(new Date(watch.lastSeenAt))}`);
+        lastSeen = parts.join(' | ');
+      } else {
+        lastSeen = 'Sin chequeos todavía';
+      }
 
       return [
-        `#${watch.id} ${watch.from} → ${watch.to} | ${dateSegment}`,
+        `#${watch.id} ${watch.from} → ${watch.to} | ${target}`,
+        `Tipo: ${tripTypeLabel}`,
         `Umbral: USD ${watch.threshold_usd}`,
         `Último: ${lastSeen}`
       ].join('\n');

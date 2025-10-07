@@ -5,6 +5,7 @@ const {
 } = require('../config');
 
 const BASE_URL = 'https://www.flylevel.com';
+const CALENDAR_ENDPOINT = '/nwe/flights/api/calendar/';
 const MAX_ATTEMPTS = 3;
 const RETRY_DELAYS = [300, 900, 1800];
 
@@ -13,8 +14,14 @@ const client = axios.create({
   timeout: HTTP_TIMEOUT_MS,
   headers: {
     Accept: 'application/json, text/plain, */*',
-    'User-Agent': 'bot-de-viajes/1.0 (+https://github.com/)',
     'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+    'Sec-Fetch-Site': 'same-origin',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Dest': 'empty',
+    'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"macOS"',
     Referer: 'https://www.flylevel.com/',
     Origin: 'https://www.flylevel.com'
   }
@@ -120,13 +127,26 @@ function buildDeepLink({ origin, destination, tripType, departureDate, returnDat
 }
 
 async function fetchMonthPrices(params) {
+  const normalizedParams = { ...params };
+  if (normalizedParams.month !== undefined && normalizedParams.month !== null) {
+    const monthNumber = Number.parseInt(normalizedParams.month, 10);
+    if (!Number.isNaN(monthNumber)) {
+      normalizedParams.month = `${monthNumber}`.padStart(2, '0');
+    } else if (typeof normalizedParams.month === 'string') {
+      normalizedParams.month = normalizedParams.month.padStart(2, '0');
+    }
+  }
+  if (normalizedParams.year !== undefined && normalizedParams.year !== null) {
+    normalizedParams.year = `${normalizedParams.year}`;
+  }
+
   const sanitizedParams = Object.fromEntries(
-    Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== '')
+    Object.entries(normalizedParams).filter(([, value]) => value !== undefined && value !== null && value !== '')
   );
   let lastError;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
     try {
-      const response = await client.get('/nwe/api/pricing/calendar/', { params: sanitizedParams });
+      const response = await client.get(CALENDAR_ENDPOINT, { params: sanitizedParams });
       return Array.isArray(response.data?.dayPrices) ? response.data.dayPrices : [];
     } catch (error) {
       lastError = error;
@@ -139,20 +159,20 @@ async function fetchMonthPrices(params) {
   throw lastError;
 }
 
-async function getBestPrice(watchParams = {}) {
-  const { from, to, date_from, date_to } = watchParams;
-  if (!from || !to || !date_from) {
+async function getBestPriceForRange(watchParams = {}) {
+  const { from, to, date_from: dateFrom, date_to: dateTo } = watchParams;
+  if (!from || !to || !dateFrom) {
     throw new Error('Parámetros insuficientes para consultar precios');
   }
 
-  const range = buildDateRange({ date_from, date_to });
-  const tripType = date_to ? 'RT' : 'OW';
+  const range = buildDateRange({ date_from: dateFrom, date_to: dateTo });
+  const tripType = watchParams.trip_type || (dateTo ? 'RT' : 'OW');
   const departureRangeStart = range.from;
   const departureRangeEnd = range.to;
   const months = enumerateMonths(departureRangeStart, departureRangeEnd);
   const allPrices = [];
   const outboundCompact = toCompactDate(departureRangeStart);
-  const returnCompact = date_to ? toCompactDate(parseDate(date_to)) : undefined;
+  const returnCompact = dateTo ? toCompactDate(parseDate(dateTo)) : undefined;
 
   for (const { month, year } of months) {
     const monthPrices = await fetchMonthPrices({
@@ -200,7 +220,7 @@ async function getBestPrice(watchParams = {}) {
     destination: to,
     tripType,
     departureDate: best.isoDate,
-    returnDate: date_to ? toIsoDate(parseDate(date_to)) : undefined
+    returnDate: tripType === 'RT' && dateTo ? toIsoDate(parseDate(dateTo)) : undefined
   });
 
   return {
@@ -210,6 +230,65 @@ async function getBestPrice(watchParams = {}) {
     foundAt: new Date().toISOString(),
     travelDate: toDdMmYyyy(best.date)
   };
+}
+
+async function getBestPriceForMonth(watchParams = {}) {
+  const { from, to, month, year } = watchParams;
+  if (!from || !to || !month || !year) {
+    throw new Error('Parámetros insuficientes para consultar el mes completo');
+  }
+
+  const tripType = watchParams.trip_type || 'RT';
+
+  const monthPrices = await fetchMonthPrices({
+    triptype: tripType,
+    origin: from,
+    destination: to,
+    month,
+    year,
+    version: 1,
+    currencyCode: 'USD'
+  });
+
+  if (!Array.isArray(monthPrices) || monthPrices.length === 0) {
+    return null;
+  }
+
+  const best = monthPrices
+    .map((entry) => ({
+      price: Number(entry.price),
+      isoDate: entry.date,
+      date: new Date(entry.date)
+    }))
+    .filter((entry) => Number.isFinite(entry.price))
+    .sort((a, b) => a.price - b.price)[0];
+
+  if (!best) {
+    return null;
+  }
+
+  const deepLink = buildDeepLink({
+    origin: from,
+    destination: to,
+    tripType,
+    departureDate: best.isoDate
+  });
+
+  return {
+    priceUsd: best.price,
+    provider: 'Level',
+    deepLink,
+    foundAt: new Date().toISOString(),
+    travelDate: toDdMmYyyy(best.date)
+  };
+}
+
+async function getBestPrice(watchParams = {}) {
+  const mode = watchParams.mode || 'range';
+  if (mode === 'month') {
+    return getBestPriceForMonth(watchParams);
+  }
+  return getBestPriceForRange(watchParams);
 }
 
 module.exports = {
