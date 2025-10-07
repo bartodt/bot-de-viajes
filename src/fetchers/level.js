@@ -12,8 +12,11 @@ const client = axios.create({
   baseURL: BASE_URL,
   timeout: HTTP_TIMEOUT_MS,
   headers: {
-    Accept: 'application/json',
-    'User-Agent': 'bot-de-viajes/1.0 (+https://www.flylevel.com)'
+    Accept: 'application/json, text/plain, */*',
+    'User-Agent': 'bot-de-viajes/1.0 (+https://github.com/)',
+    'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+    Referer: 'https://www.flylevel.com/',
+    Origin: 'https://www.flylevel.com'
   }
 });
 

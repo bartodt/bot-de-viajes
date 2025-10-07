@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "id": 1,
+    "from": "EZE",
+    "to": "BCN",
+    "date_from": "01/05/2026",
+    "date_to": null,
+    "threshold_usd": 2000,
+    "lastSeenPrice": null,
+    "lastSeenAt": null,
+    "lastAlertAt": null
+  }
+]
