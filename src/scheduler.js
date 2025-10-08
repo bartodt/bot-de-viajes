@@ -32,10 +32,16 @@ function createScheduler({ store, notifier, fetcher = levelFetcher, appConfig = 
 
         const now = new Date();
         const updatePayload = {
-          lastSeenAt: now.toISOString(),
-          lastSeenPrice: result && typeof result.priceUsd === 'number' ? result.priceUsd : null,
-          lastSeenTravelDate: result && result.travelDate ? result.travelDate : null
+          lastSeenAt: now.toISOString()
         };
+
+        if (result && typeof result.priceUsd === 'number') {
+          updatePayload.lastSeenPrice = result.priceUsd;
+        }
+
+        if (result && result.travelDate) {
+          updatePayload.lastSeenTravelDate = result.travelDate;
+        }
 
         if (result) {
           // eslint-disable-next-line no-console
@@ -50,6 +56,7 @@ function createScheduler({ store, notifier, fetcher = levelFetcher, appConfig = 
           );
           if (notification.notified) {
             updatePayload.lastAlertAt = now.toISOString();
+            updatePayload.lastAlertPrice = result.priceUsd;
             summary.alerts += 1;
           }
         } else {

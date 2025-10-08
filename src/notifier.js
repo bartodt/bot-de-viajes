@@ -60,9 +60,18 @@ function createNotifier(bot, config) {
     const hasThreshold = Number.isFinite(threshold);
     const triggeredByThreshold = hasThreshold && result.priceUsd <= threshold;
     const triggeredByDrop = Number.isFinite(previousPrice) && result.priceUsd < previousPrice;
+    const lastAlertPrice = Number.isFinite(watch.lastAlertPrice) ? watch.lastAlertPrice : null;
 
     if (!triggeredByThreshold && !triggeredByDrop) {
       return { notified: false };
+    }
+    if (
+      triggeredByThreshold &&
+      !triggeredByDrop &&
+      lastAlertPrice !== null &&
+      result.priceUsd === lastAlertPrice
+    ) {
+      return { notified: false, reason: 'same_price_threshold' };
     }
     if (watch.lastAlertAt) {
       const lastAlert = new Date(watch.lastAlertAt);

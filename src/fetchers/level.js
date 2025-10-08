@@ -228,6 +228,11 @@ async function getBestPriceForMonth(watchParams = {}) {
   }
 
   const tripType = watchParams.trip_type || 'RT';
+  const monthNumber = Number.parseInt(month, 10);
+  const yearNumber = Number.parseInt(year, 10);
+  if (Number.isNaN(monthNumber) || Number.isNaN(yearNumber)) {
+    throw new Error('Mes o año inválido para la consulta mensual');
+  }
 
   const monthPrices = await fetchMonthPrices({
     triptype: tripType,
@@ -243,14 +248,27 @@ async function getBestPriceForMonth(watchParams = {}) {
     return null;
   }
 
-  const bestOutbound = monthPrices
+  const outboundCandidates = monthPrices
     .map((entry) => ({
       price: Number(entry.price),
       isoDate: entry.date,
       date: new Date(entry.date)
     }))
-    .filter((entry) => Number.isFinite(entry.price))
-    .sort((a, b) => a.price - b.price)[0];
+    .filter((entry) => Number.isFinite(entry.price));
+
+  const outboundInMonth = outboundCandidates.filter(
+    (entry) => entry.date.getFullYear() === yearNumber && entry.date.getMonth() + 1 === monthNumber
+  );
+
+  const outboundPool = outboundInMonth.length > 0 ? outboundInMonth : [];
+
+  if (outboundPool.length === 0) {
+    // eslint-disable-next-line no-console
+    console.log(`[fetcher:level] sin salidas dentro de ${month}/${year} para ${from}-${to}`);
+    return null;
+  }
+
+  const bestOutbound = outboundPool.sort((a, b) => a.price - b.price)[0];
 
   if (!bestOutbound) {
     return null;
@@ -261,25 +279,42 @@ async function getBestPriceForMonth(watchParams = {}) {
 
   if (tripType === 'RT') {
     try {
-      const inboundPrices = await fetchMonthPrices({
-        triptype: 'OW',
-        origin: to,
-        destination: from,
-        month,
-        year,
-        version: 1,
-        currencyCode: 'USD'
-      });
+      const inboundMonths = [];
+      inboundMonths.push({ month: monthNumber, year: yearNumber });
+      const nextMonth = monthNumber === 12 ? 1 : monthNumber + 1;
+      const nextMonthYear = monthNumber === 12 ? yearNumber + 1 : yearNumber;
+      inboundMonths.push({ month: nextMonth, year: nextMonthYear });
 
-      if (Array.isArray(inboundPrices) && inboundPrices.length > 0) {
+      const inboundCandidatesRaw = [];
+      for (const inboundConfig of inboundMonths) {
+        const inboundPrices = await fetchMonthPrices({
+          triptype: 'OW',
+          origin: to,
+          destination: from,
+          month: inboundConfig.month,
+          year: inboundConfig.year,
+          version: 1,
+          currencyCode: 'USD'
+        });
+
+        if (Array.isArray(inboundPrices) && inboundPrices.length > 0) {
+          inboundCandidatesRaw.push(
+            ...inboundPrices.map((entry) => ({
+              price: Number(entry.price),
+              isoDate: entry.date,
+              date: new Date(entry.date)
+            }))
+          );
+        }
+      }
+
+      if (inboundCandidatesRaw.length === 0) {
+        return null;
+      }
+
+      if (inboundCandidatesRaw.length > 0) {
         const outboundDate = bestOutbound.date;
-        const inboundCandidates = inboundPrices
-          .map((entry) => ({
-            price: Number(entry.price),
-            isoDate: entry.date,
-            date: new Date(entry.date)
-          }))
-          .filter((entry) => Number.isFinite(entry.price));
+        const inboundCandidates = inboundCandidatesRaw.filter((entry) => Number.isFinite(entry.price));
 
         const minDiffMs = 10 * 24 * 60 * 60 * 1000;
         const eligibleInbound = inboundCandidates
@@ -290,10 +325,14 @@ async function getBestPriceForMonth(watchParams = {}) {
         const bestInbound = eligibleInbound[0];
 
         if (bestInbound) {
-          totalPrice += bestInbound.price;
+          totalPrice = bestOutbound.price + bestInbound.price;
           travelLabel = `Salida ${toDdMmYyyy(bestOutbound.date)} / Regreso ${toDdMmYyyy(bestInbound.date)}`;
         } else {
-          travelLabel = `Salida ${toDdMmYyyy(bestOutbound.date)} (sin regreso ≥10 días disponible)`;
+          // eslint-disable-next-line no-console
+          console.log(
+            `[fetcher:level] sin regreso ≥10 días para ${from}-${to} ${month}/${year} (salida ${bestOutbound.isoDate})`
+          );
+          return null;
         }
       }
     } catch (error) {

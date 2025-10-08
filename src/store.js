@@ -67,6 +67,7 @@ class WatchStore {
       lastSeenPrice: null,
       lastSeenAt: null,
       lastAlertAt: null,
+      lastAlertPrice: null,
       lastSeenTravelDate: null
     };
     await this.#writeAll([...watches, newWatch]);
